@@ -1,0 +1,26 @@
+{
+  "name": "rtl9210-decompile",
+  "image": "mcr.microsoft.com/devcontainers/universal:linux",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  },
+
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installMaven": false,
+      "installGradle": false
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/scripts/setup.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": []
+    }
+  }
+}
