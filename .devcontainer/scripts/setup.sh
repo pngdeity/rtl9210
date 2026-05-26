@@ -11,8 +11,20 @@ unzip -q /tmp/ghidra.zip -d /opt/
 rm /tmp/ghidra.zip
 ln -sf /opt/ghidra_12.1_PUBLIC_20260513 /opt/ghidra
 
+echo "=== Waiting for Java 21 ==="
+export JAVA_HOME="${JAVA_HOME:-/usr/local/sdkman/candidates/java/current}"
+export PATH="$JAVA_HOME/bin:$PATH"
+until java -version 2>&1 | grep -q "21"; do
+	echo "  waiting for JDK 21..."
+	sleep 5
+done
+echo "Java: $(java -version 2>&1 | head -1)"
+
 echo "=== Installing Python dependencies ==="
-pip install pyghidra ghidrecomp 2>&1 | tail -1
+export GHIDRA_INSTALL_DIR=/opt/ghidra
+python3 -m pip install --user pyghidra ghidrecomp 2>&1
+echo "pyghidra: $(python3 -c 'import pyghidra; print(pyghidra.__version__)' 2>&1)"
+echo "ghidrecomp: $(python3 -m ghidrecomp --version 2>&1)"
 
 echo "=== Extracting UTHSB_MPtool_Lite.exe from firmware zip ==="
 FIRMWARE_ZIP="firmware/realtek_rtl9210B_fw1.34.39(station-drivers.com).zip"

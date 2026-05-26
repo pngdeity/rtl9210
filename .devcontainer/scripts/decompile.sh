@@ -3,6 +3,9 @@ set -euo pipefail
 
 BINARY="$HOME/binaries/Windows/UTHSB_MPtool_Lite.exe"
 OUTDIR="$HOME/decompile-output"
+export GHIDRA_INSTALL_DIR="${GHIDRA_INSTALL_DIR:-/opt/ghidra}"
+export PATH="$HOME/.local/bin:$GHIDRA_INSTALL_DIR/support:$PATH"
+
 WORKSPACE="/workspaces/rtl9210"
 SCRIPTS="$WORKSPACE/scripts"
 
