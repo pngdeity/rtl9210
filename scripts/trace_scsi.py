@@ -43,7 +43,7 @@ def _launch_ghidra(install_dir):
     return pyghidra
 
 
-def extract_scsi_info(binary_path, project_dir, output_path):
+def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
     try:
         import pyghidra as _check  # noqa: F401
     except ImportError:
@@ -85,10 +85,16 @@ def extract_scsi_info(binary_path, project_dir, output_path):
             listing = program.getListing()
 
             print("Setting up decompiler ...")
-            from ghidra.app.decompiler import DecompInterface
+            from ghidra.app.decompiler import (
+                DecompInterface,
+                DecompileOptions,
+            )
             from ghidra.util.task import ConsoleTaskMonitor
 
             decompiler = DecompInterface()
+            decomp_options = DecompileOptions()
+            decomp_options.grabFromProgram(program)
+            decompiler.setOptions(decomp_options)
             decompiler.openProgram(program)
             monitor = ConsoleTaskMonitor()
 
@@ -126,6 +132,9 @@ def extract_scsi_info(binary_path, project_dir, output_path):
             decomp_count = 0
             error_count = 0
             for i, func in enumerate(functions):
+                if max_funcs and i >= max_funcs:
+                    print(f"  stopping after {max_funcs} functions (--max-funcs)")
+                    break
                 if (i + 1) % 5000 == 0:
                     print(f"  processed {i + 1}/{len(functions)} ...")
 
@@ -330,9 +339,15 @@ def main():
     parser.add_argument("--binary", required=True, help="Path to UTHSB_MPtool_Lite.exe")
     parser.add_argument("--project-dir", required=True, help="Ghidra project directory")
     parser.add_argument("--output", required=True, help="Output JSON file")
+    parser.add_argument(
+        "--max-funcs",
+        type=int,
+        default=None,
+        help="Max functions to process (for debugging)",
+    )
     args = parser.parse_args()
 
-    extract_scsi_info(args.binary, args.project_dir, args.output)
+    extract_scsi_info(args.binary, args.project_dir, args.output, args.max_funcs)
 
 
 if __name__ == "__main__":
