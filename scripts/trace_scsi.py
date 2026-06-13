@@ -133,8 +133,8 @@ def extract_scsi_info(binary_path, project_dir, output_path):
 
                 try:
                     result = decompiler.decompileFunction(func, 30, monitor)
-                    if result and result.decompileCompleted():
-                        decomp = result.getDecompiledFunction().getC()
+                    if result is not None and not result.getErrorMessage():
+                        decomp = result.decompiledFunction.getC()
                     else:
                         decomp = None
                 except Exception:
