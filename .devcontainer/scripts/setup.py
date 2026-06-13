@@ -10,11 +10,11 @@ import zipfile
 from pathlib import Path
 from urllib.request import urlretrieve
 
-GHIDRA_VERSION = "12.1.2"
-GHIDRA_TAG = "Ghidra_12.1.2_build"
-GHIDRA_FILENAME = "ghidra_12.1.2_PUBLIC_20260605.zip"
+GHIDRA_VERSION = "12.1"
+GHIDRA_TAG = "Ghidra_12.1_build"
+GHIDRA_FILENAME = "ghidra_12.1_PUBLIC_20250916.zip"
 GHIDRA_URL = f"https://github.com/NationalSecurityAgency/ghidra/releases/download/{GHIDRA_TAG}/{GHIDRA_FILENAME}"
-GHIDRA_SHA256 = "b62e81a0390618466c019c60d8c2f796ced2509c4c1aea4a37644a77272cf99d"
+GHIDRA_SHA256 = "dabe2e5d1e56ba0848976711d75b3f53d696939697cfbd0f293cd8aee77a8424"
 
 GHIDRA_INSTALL_DIR = "/opt/ghidra"
 FIRMWARE_ZIP = "firmware/realtek_rtl9210B_fw1.34.39(station-drivers.com).zip"
