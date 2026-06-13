@@ -78,6 +78,7 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
         with ghidra.open_program(
             binary_path,
             project_location=project_path,
+            project_name="UTHSB_scsi_trace",
             analyze=True,
         ) as flat_api:
             program = flat_api.getCurrentProgram()
@@ -201,7 +202,9 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
             results["file_references"] = sorted(set(results["file_references"]))
 
             print(f"  SCSI-related functions: {len(results['scsi_functions'])}")
-            print(f"  keyword matches: {kw_count}, cdb matches: {cdb_count}")
+            print(
+                f"  keyword matches: {kw_count}, cdb matches: {cdb_count}, total decompiled: {decomp_count}"
+            )
             print(f"  Device paths: {len(results['device_paths'])}")
             print(f"  CDB extractions: {len(results['cdb_extractions'])}")
             print(f"  File references: {len(results['file_references'])}")
