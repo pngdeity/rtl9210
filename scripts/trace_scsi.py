@@ -158,8 +158,9 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
 
                 decomp_count += 1
                 if decomp_count <= 3:
-                    print(f"  DEBUG [{decomp_count}]: {name} @ {addr}")
-                    print(f"    code ({len(decomp)} chars): {decomp[:200]!r}")
+                    print(
+                        f"  OK [{decomp_count}]: {name} @ {addr} ({len(decomp)} chars)"
+                    )
 
                 has_cdb = _has_cdb_pattern(decomp)
                 kw_match = bool(scsi_keywords.search(decomp))
