@@ -155,7 +155,12 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
                                 f"  ERR [{error_count}]: {name} @ {addr} — {err[:120]}"
                             )
                         decomp = None
-                except Exception:
+                except Exception as e:
+                    error_count += 1
+                    if error_count <= 3:
+                        print(
+                            f"  EXC [{error_count}]: {name} — {type(e).__name__}: {e}"
+                        )
                     decomp = None
 
                 if not decomp:
