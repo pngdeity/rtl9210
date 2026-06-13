@@ -70,6 +70,11 @@ def extract_ghidra(zip_path):
     symlink.symlink_to(src)
     print(f"  Symlinked: {GHIDRA_INSTALL_DIR} -> {src}")
 
+    decompiler = src / "Ghidra/Features/Decompiler/os/linux_x86_64/decompile"
+    if decompiler.exists():
+        decompiler.chmod(0o755)
+        print(f"  Fixed decompiler permissions: {decompiler}")
+
 
 def switch_to_jdk_21():
     """Switch to JDK 21 via SDKMAN; devcontainer features install 21+25, pick 21."""
