@@ -1,1 +1,3 @@
 __pycache__/
+decompile-output/*
+!decompile-output/decomp_all.tar.gz

@@ -13,10 +13,11 @@
       "version": "21",
       "installMaven": false,
       "installGradle": false
-    }
+    },
+    "ghcr.io/devcontainers/features/git-lfs:1": {}
   },
 
-  "postCreateCommand": "bash .devcontainer/scripts/setup.sh",
+  "postCreateCommand": "python3 .devcontainer/scripts/setup.py",
 
   "customizations": {
     "vscode": {
