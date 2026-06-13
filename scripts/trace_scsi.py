@@ -26,6 +26,7 @@ def _launch_ghidra(install_dir):
     ghidra_install = install_dir or os.environ.get("GHIDRA_INSTALL_DIR")
     if not ghidra_install:
         sys.exit("GHIDRA_INSTALL_DIR not set")
+    ghidra_install = Path(ghidra_install)
     os.environ["GHIDRA_INSTALL_DIR"] = str(ghidra_install)
 
     jdk21 = _find_jdk_21()
@@ -33,11 +34,24 @@ def _launch_ghidra(install_dir):
         os.environ["JAVA_HOME"] = jdk21
         os.environ["PATH"] = f"{jdk21}/bin:{os.environ.get('PATH', '')}"
 
-    import pyghidra
     from pyghidra import HeadlessPyGhidraLauncher
 
     launcher = HeadlessPyGhidraLauncher(verbose=False)
+
+    generic_jar = (
+        ghidra_install / "Ghidra" / "Framework" / "Generic" / "lib" / "Generic.jar"
+    )
+    util_jar = (
+        ghidra_install / "Ghidra" / "Framework" / "Utility" / "lib" / "Utility.jar"
+    )
+    if generic_jar.exists():
+        launcher.add_classpaths(str(generic_jar))
+    if util_jar.exists():
+        launcher.add_classpaths(str(util_jar))
+
     launcher.start()
+    import pyghidra
+
     return pyghidra
 
 
