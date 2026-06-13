@@ -79,11 +79,17 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
             binary_path,
             project_location=project_path,
             project_name="UTHSB_scsi_trace",
-            analyze=True,
+            analyze=False,
         ) as flat_api:
             program = flat_api.getCurrentProgram()
             fm = program.getFunctionManager()
             listing = program.getListing()
+
+            print("Running analysis ...")
+            import pyghidra as _pyg
+
+            analysis_log = _pyg.analyze(program)
+            print(f"  analysis complete: {len(analysis_log)} chars")
 
             print("Setting up decompiler ...")
             from ghidra.app.decompiler import (

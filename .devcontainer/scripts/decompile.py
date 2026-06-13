@@ -48,7 +48,7 @@ def _parse_total_matches(path):
 def ensure_decomp_corpus(output_dir, workspace):
     corpus_dir = output_dir / "decomp_all"
     if corpus_dir.exists() and any(corpus_dir.iterdir()):
-        count = sum(1 for _ in corpus_dir.glob("*.c"))
+        count = sum(1 for _ in corpus_dir.rglob("*.c"))
         print(f"\n=== Step 1: SKIPPED (corpus exists: {count} functions) ===")
         return count
 
@@ -58,7 +58,7 @@ def ensure_decomp_corpus(output_dir, workspace):
         output_dir.mkdir(parents=True, exist_ok=True)
         with tarfile.open(tarball, "r:gz") as tf:
             tf.extractall(output_dir)
-        count = sum(1 for _ in corpus_dir.glob("*.c"))
+        count = sum(1 for _ in corpus_dir.rglob("*.c"))
         print(f"  Extracted {count} functions")
         return count
 
