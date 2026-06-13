@@ -115,7 +115,7 @@ def extract_scsi_info(binary_path, project_dir, output_path):
             print(f"Enumerating {len(functions)} functions ...")
 
             scsi_keywords = re.compile(
-                r"DeviceIoControl|CreateFile[AW]|SCSI|CDB|WRITE.BUFFER|"
+                r"DeviceIoControl|CreateFile[AW]|SCSI\b|CDB|WRITE.BUFFER|"
                 r"IOCTL_SCSI|PhysicalDrive|SetupDi|WinUSB|"
                 r"firmware|gdfw|\.bin|\.cfg",
                 re.IGNORECASE,
@@ -140,16 +140,18 @@ def extract_scsi_info(binary_path, project_dir, output_path):
                 if not decomp:
                     continue
 
-                if not scsi_keywords.search(decomp):
+                has_cdb = _has_cdb_pattern(decomp)
+                if not scsi_keywords.search(decomp) and not has_cdb:
                     continue
 
-                results["scsi_functions"].append(
-                    {
-                        "name": name,
-                        "address": str(addr),
-                        "code": decomp,
-                    }
-                )
+                if scsi_keywords.search(decomp):
+                    results["scsi_functions"].append(
+                        {
+                            "name": name,
+                            "address": str(addr),
+                            "code": decomp,
+                        }
+                    )
 
                 for match in re.finditer(
                     r'\\\\\.\\(?:PhysicalDrive\d+|USB#[^"]+|SCSI\d+)', decomp
@@ -163,7 +165,7 @@ def extract_scsi_info(binary_path, project_dir, output_path):
                 ):
                     results["file_references"].append(match.group(1))
 
-                if _has_cdb_pattern(decomp):
+                if has_cdb:
                     extraction = _extract_cdb_info(decomp, name, addr)
                     if extraction:
                         results["cdb_extractions"].append(extraction)
