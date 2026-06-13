@@ -88,6 +88,8 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
 
             if GhidraProgramUtilities.shouldAskToAnalyze(program):
                 flat_api.analyzeAll(program)
+                GhidraProgramUtilities.setAnalyzedFlag(program, True)
+                GhidraProgramUtilities.markProgramAnalyzed(program)
             print("  analysis complete")
 
         # Phase 2: reopen analyzed program, set up decompiler, extract
@@ -112,7 +114,10 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
             decomp_options = DecompileOptions()
             decomp_options.grabFromProgram(program)
             decompiler.setOptions(decomp_options)
-            decompiler.openProgram(program)
+            ok = decompiler.openProgram(program)
+            print(f"  decompiler.openProgram() returned: {ok}")
+            if not ok:
+                print(f"  last message: {decompiler.getLastMessage()}")
             monitor = ConsoleTaskMonitor()
 
             print("Collecting strings ...")
@@ -161,6 +166,15 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
 
                 try:
                     result = decompiler.decompileFunction(func, 30, monitor)
+                    if i == 0 and result is not None:
+                        print(
+                            f"  first decompile diag: completed={result.decompileCompleted()}, "
+                            f"failedToStart={result.failedToStart()}, "
+                            f"timedOut={result.isTimedOut()}, "
+                            f"cancelled={result.isCancelled()}, "
+                            f"error={repr(result.getErrorMessage())}, "
+                            f"defunc={result.getDecompiledFunction()}"
+                        )
                     if (
                         result is not None
                         and result.decompiledFunction is not None
