@@ -3,10 +3,8 @@
 
 import hashlib
 import os
-import shutil
 import subprocess
 import sys
-import tempfile
 import time
 import zipfile
 from pathlib import Path
@@ -68,32 +66,61 @@ def extract_ghidra(zip_path):
     print(f"  Symlinked: {GHIDRA_INSTALL_DIR} -> {src}")
 
 
-def wait_for_java():
-    print(f"\n=== Waiting for Java {JAVA_VERSION} ===")
-    java_home = os.environ.get("JAVA_HOME", "/usr/local/sdkman/candidates/java/current")
-    bin_dir = Path(java_home) / "bin"
-    java_bin = shutil.which("java", path=str(bin_dir)) or "java"
+def switch_to_jdk_21():
+    """Switch to JDK 21 via SDKMAN; devcontainer features install 21+25, pick 21."""
+    print(f"\n=== Switching to Java 21 ===")
+    sdkman_dir = Path("/usr/local/sdkman")
+    sdkman_init = sdkman_dir / "bin" / "sdkman-init.sh"
+    sdk_bin = sdkman_dir / "bin" / "sdkman-init.sh"
+    candidates = sdkman_dir / "candidates" / "java"
 
     elapsed = 0
     while elapsed < MAX_WAIT:
-        try:
-            result = subprocess.run(
-                [java_bin, "-version"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            stderr = result.stderr or result.stdout
-            if JAVA_VERSION in stderr:
-                print(f"  Java: {stderr.splitlines()[0]}")
-                return
-        except Exception:
-            pass
-        print(f"  waiting for JDK {JAVA_VERSION} ... ({elapsed}s)")
+        if sdkman_init.exists() and candidates.exists():
+            break
+        print(f"  waiting for SDKMAN ... ({elapsed}s)")
         time.sleep(POLL_INTERVAL)
         elapsed += POLL_INTERVAL
+    else:
+        sys.exit(f"SDKMAN not available after {MAX_WAIT}s")
 
-    sys.exit(f"Java {JAVA_VERSION} not found after {MAX_WAIT}s")
+    java_candidates = sorted(
+        [d for d in candidates.iterdir() if d.is_dir() and d.name != "current"],
+        reverse=True,
+    )
+    jdk21 = next(
+        (d for d in java_candidates if d.name.startswith("21.") or d.name == "21"), None
+    )
+
+    if not jdk21:
+        jdk21s = [d.name for d in java_candidates if "21" in d.name]
+        if jdk21s:
+            sys.exit(f"JDK 21 not found under {candidates}. Available: {jdk21s}")
+
+    if jdk21:
+        java_home = jdk21
+    else:
+        java_home = candidates / "current"
+
+    os.environ["JAVA_HOME"] = str(java_home)
+    os.environ["PATH"] = f"{java_home / 'bin'}:{os.environ.get('PATH', '')}"
+
+    result = subprocess.run(
+        [str(java_home / "bin" / "java"), "-version"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    ver_line = (
+        (result.stderr or result.stdout).splitlines()[0]
+        if (result.stderr or result.stdout)
+        else "unknown"
+    )
+    print(f"  Java home: {java_home}")
+    print(f"  {ver_line}")
+
+    if "21" not in ver_line and not jdk21:
+        print("  WARNING: failed to confirm JDK 21")
 
 
 def install_pyghidra():
@@ -198,7 +225,7 @@ def main():
 
     zip_path = download_ghidra()
     extract_ghidra(zip_path)
-    wait_for_java()
+    switch_to_jdk_21()
     install_pyghidra()
     install_ghidrecomp()
     extract_firmware(workspace)

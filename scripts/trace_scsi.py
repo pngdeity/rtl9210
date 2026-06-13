@@ -10,6 +10,16 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
+
+
+def _find_jdk_21():
+    sdkman = Path("/usr/local/sdkman/candidates/java")
+    if sdkman.exists():
+        for d in sorted(sdkman.iterdir(), reverse=True):
+            if d.is_dir() and d.name.startswith("21."):
+                return str(d)
+    return os.environ.get("JAVA_HOME")
 
 
 def _launch_ghidra(install_dir):
@@ -17,6 +27,11 @@ def _launch_ghidra(install_dir):
     if not ghidra_install:
         sys.exit("GHIDRA_INSTALL_DIR not set")
     os.environ["GHIDRA_INSTALL_DIR"] = str(ghidra_install)
+
+    jdk21 = _find_jdk_21()
+    if jdk21:
+        os.environ["JAVA_HOME"] = jdk21
+        os.environ["PATH"] = f"{jdk21}/bin:{os.environ.get('PATH', '')}"
 
     import pyghidra
     from pyghidra import HeadlessPyGhidraLauncher
