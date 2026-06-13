@@ -78,15 +78,9 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
         with ghidra.open_program(
             binary_path,
             project_location=project_path,
-            analyze=False,
+            analyze=True,
         ) as flat_api:
             program = flat_api.getCurrentProgram()
-
-            print("Running Ghidra auto-analysis ...")
-            from ghidra.util.task import ConsoleTaskMonitor
-
-            ghidra.analyze(program, ghidra.task_monitor())
-
             fm = program.getFunctionManager()
             listing = program.getListing()
 
