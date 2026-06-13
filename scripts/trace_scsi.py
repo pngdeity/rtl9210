@@ -88,7 +88,8 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
 
             if GhidraProgramUtilities.shouldAskToAnalyze(program):
                 flat_api.analyzeAll(program)
-                GhidraProgramUtilities.setAnalyzedFlag(program, True)
+                if hasattr(GhidraProgramUtilities, "setAnalyzedFlag"):
+                    GhidraProgramUtilities.setAnalyzedFlag(program, True)
                 GhidraProgramUtilities.markProgramAnalyzed(program)
             print("  analysis complete")
 
