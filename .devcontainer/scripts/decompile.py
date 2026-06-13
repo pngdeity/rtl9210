@@ -97,9 +97,13 @@ def step_ghidrecomp(binary_path, output_dir):
 
 
 def step_scan_patterns(output_dir, scripts_dir):
-    print("\n=== Step 2: scan_patterns — grep .c corpus for USB/SCSI/IO patterns ===")
     output_file = output_dir / "pattern_matches.txt"
+    if output_file.exists():
+        count = sum(1 for _ in open(output_file))
+        print(f"\n=== Step 2: SKIPPED (pattern_matches.txt exists: {count} lines) ===")
+        return count
 
+    print("\n=== Step 2: scan_patterns — grep .c corpus for USB/SCSI/IO patterns ===")
     run(
         [
             sys.executable,
@@ -119,8 +123,13 @@ def step_scan_patterns(output_dir, scripts_dir):
 
 
 def step_filter_decomp(output_dir, scripts_dir):
-    print("\n=== Step 3: filter_decomp — copy relevant .c files ===")
     output_path = output_dir / "relevant_decomp"
+    if output_path.exists() and any(output_path.iterdir()):
+        count = len(list(output_path.glob("*.c")))
+        print(f"\n=== Step 3: SKIPPED (relevant_decomp exists: {count} files) ===")
+        return count
+
+    print("\n=== Step 3: filter_decomp — copy relevant .c files ===")
 
     run(
         [
@@ -139,12 +148,25 @@ def step_filter_decomp(output_dir, scripts_dir):
 
 
 def step_trace_scsi(binary_path, output_dir):
-    print("\n=== Step 4: trace_scsi — pyghidra targeted SCSI extraction ===")
     json_path = output_dir / "scsi_cdb_sequence.json"
     scripts_dir = (
         Path(os.environ.get("GITHUB_WORKSPACE", "/workspaces/rtl9210")) / "scripts"
     )
     log_path = output_dir / "trace_scsi.log"
+
+    if json_path.exists():
+        try:
+            data = json.loads(json_path.read_text())
+            status = data.get("status", "completed")
+            if status == "completed":
+                print("\n=== Step 4: SKIPPED (scsi_cdb_sequence.json exists) ===")
+                print(f"  SCSI functions: {len(data.get('scsi_functions', []))}")
+                print(f"  CDB extractions: {len(data.get('cdb_extractions', []))}")
+                return
+        except json.JSONDecodeError:
+            pass
+
+    print("\n=== Step 4: trace_scsi — pyghidra targeted SCSI extraction ===")
 
     env = {
         **os.environ,
