@@ -123,6 +123,7 @@ def extract_scsi_info(binary_path, project_dir, output_path):
 
             cdb_count = 0
             kw_count = 0
+            decomp_count = 0
             for i, func in enumerate(functions):
                 if (i + 1) % 5000 == 0:
                     print(f"  processed {i + 1}/{len(functions)} ...")
@@ -141,6 +142,11 @@ def extract_scsi_info(binary_path, project_dir, output_path):
 
                 if not decomp:
                     continue
+
+                decomp_count += 1
+                if decomp_count <= 3:
+                    print(f"  DEBUG [{decomp_count}]: {name} @ {addr}")
+                    print(f"    code ({len(decomp)} chars): {decomp[:200]!r}")
 
                 has_cdb = _has_cdb_pattern(decomp)
                 kw_match = bool(scsi_keywords.search(decomp))
