@@ -75,6 +75,21 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
 
         ghidra = _launch_ghidra(os.environ.get("GHIDRA_INSTALL_DIR"))
 
+        # Phase 1: open, analyze, save
+        with ghidra.open_program(
+            binary_path,
+            project_location=project_path,
+            project_name="UTHSB_scsi_trace",
+            analyze=False,
+        ) as flat_api:
+            program = flat_api.getCurrentProgram()
+            print("Running analysis ...")
+            import pyghidra as _pyg
+
+            analysis_log = _pyg.analyze(program)
+            print(f"  analysis complete: {len(analysis_log)} chars")
+
+        # Phase 2: reopen analyzed program, set up decompiler, extract
         with ghidra.open_program(
             binary_path,
             project_location=project_path,
@@ -84,12 +99,6 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
             program = flat_api.getCurrentProgram()
             fm = program.getFunctionManager()
             listing = program.getListing()
-
-            print("Running analysis ...")
-            import pyghidra as _pyg
-
-            analysis_log = _pyg.analyze(program)
-            print(f"  analysis complete: {len(analysis_log)} chars")
 
             print("Setting up decompiler ...")
             from ghidra.app.decompiler import (
