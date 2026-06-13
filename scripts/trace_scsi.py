@@ -130,7 +130,6 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
             cdb_count = 0
             kw_count = 0
             decomp_count = 0
-            error_count = 0
             for i, func in enumerate(functions):
                 if max_funcs and i >= max_funcs:
                     print(f"  stopping after {max_funcs} functions (--max-funcs)")
@@ -143,24 +142,15 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
 
                 try:
                     result = decompiler.decompileFunction(func, 30, monitor)
-                    if result is not None and result.getErrorMessage() == "":
+                    if (
+                        result is not None
+                        and result.decompiledFunction is not None
+                        and result.getErrorMessage() == ""
+                    ):
                         decomp = result.decompiledFunction.getC()
                     else:
-                        error_count += 1
-                        if error_count <= 3:
-                            err = (
-                                result.getErrorMessage() if result else "result is None"
-                            )
-                            print(
-                                f"  ERR [{error_count}]: {name} @ {addr} — {err[:120]}"
-                            )
                         decomp = None
-                except Exception as e:
-                    error_count += 1
-                    if error_count <= 3:
-                        print(
-                            f"  EXC [{error_count}]: {name} — {type(e).__name__}: {e}"
-                        )
+                except Exception:
                     decomp = None
 
                 if not decomp:
