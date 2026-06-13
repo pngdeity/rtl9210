@@ -121,6 +121,8 @@ def extract_scsi_info(binary_path, project_dir, output_path):
                 re.IGNORECASE,
             )
 
+            cdb_count = 0
+            kw_count = 0
             for i, func in enumerate(functions):
                 if (i + 1) % 5000 == 0:
                     print(f"  processed {i + 1}/{len(functions)} ...")
@@ -141,7 +143,12 @@ def extract_scsi_info(binary_path, project_dir, output_path):
                     continue
 
                 has_cdb = _has_cdb_pattern(decomp)
-                if not scsi_keywords.search(decomp) and not has_cdb:
+                kw_match = bool(scsi_keywords.search(decomp))
+                if has_cdb:
+                    cdb_count += 1
+                if kw_match:
+                    kw_count += 1
+                if not kw_match and not has_cdb:
                     continue
 
                 if scsi_keywords.search(decomp):
@@ -174,6 +181,7 @@ def extract_scsi_info(binary_path, project_dir, output_path):
             results["file_references"] = sorted(set(results["file_references"]))
 
             print(f"  SCSI-related functions: {len(results['scsi_functions'])}")
+            print(f"  keyword matches: {kw_count}, cdb matches: {cdb_count}")
             print(f"  Device paths: {len(results['device_paths'])}")
             print(f"  CDB extractions: {len(results['cdb_extractions'])}")
             print(f"  File references: {len(results['file_references'])}")
