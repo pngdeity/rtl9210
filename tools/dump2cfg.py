@@ -2,7 +2,6 @@
 
 import re
 import sys
-from pathlib import Path
 
 if len(sys.argv) < 2:
     print("Usage:", sys.argv[0], "<dump file>")
@@ -24,9 +23,10 @@ with open(sys.argv[1], encoding="utf-8") as fin:
             if fout:
                 fout.close()
             fname = val.strip("[]") + ".cfg"
+            device_version = fields[2].strip() if len(fields) > 2 else ""
             fout = open(fname, "w", encoding="utf-8")
-            fout.write("; " + val + " : " + fields[2].strip() + "\r\n")
-        elif kre.match(key) and val != "n/a" and fout is not None:
+            fout.write("; " + val + " : " + device_version + "\r\n")
+        elif kre.match(key) and val and val != "n/a" and fout is not None:
             fout.write(key + " = " + val + "\r\n")
 
 if fout:

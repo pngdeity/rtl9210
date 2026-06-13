@@ -6,57 +6,61 @@ import os
 import re
 import sys
 
-PATTERNS = {
+_RAW_PATTERNS = {
     "device_open": [
-        r"CreateFile[AW]?\s*\(",  # Windows file open
-        r"\\\\\.\\PhysicalDrive",  # SCSI passthrough device
-        r"\\\\\.\\USB#",  # Raw USB device path
-        r"\\\\\.\\SCSI",  # SCSI device
+        r"CreateFile[AW]?\s*\(",
+        r"\\\\\.\\PhysicalDrive",
+        r"\\\\\.\\USB#",
+        r"\\\\\.\\SCSI",
     ],
     "scsi_passthrough": [
-        r"DeviceIoControl\s*\(",  # Windows IOCTL dispatch
-        r"IOCTL_SCSI_PASS_THROUGH",  # SCSI passthrough IOCTL
-        r"SCSI_PASS_THROUGH",  # SCSI_PASS_THROUGH struct
-        r"SCSI_PASS_THROUGH_DIRECT",  # Direct variant
-        r"CDB\b",  # CDB construction
-        r"cdb\b",  # lowercase variant
+        r"DeviceIoControl\s*\(",
+        r"IOCTL_SCSI_PASS_THROUGH",
+        r"SCSI_PASS_THROUGH",
+        r"SCSI_PASS_THROUGH_DIRECT",
+        r"CDB\b",
+        r"cdb\b",
     ],
     "scsi_commands": [
-        r"(?:0x|\\x)3[bB]\b",  # WRITE BUFFER opcode (0x3B)
-        r"(?:0x|\\x)3[cC]\b",  # READ BUFFER opcode (0x3C)
-        r"(?:0x|\\x)00\b",  # TEST UNIT READY (0x00)
-        r"(?:0x|\\x)12\b",  # INQUIRY (0x12)
-        r"WRITE_BUFFER",  # Named constant
-        r"WRITE_DATA_BUFF",  # Alternative name
-        r"SEND_DIAGNOSTIC",  # Self-test/firmware mode switch
+        r"(?:0x|\\x)3b\b",  # WRITE BUFFER opcode
+        r"(?:0x|\\x)3c\b",  # READ BUFFER opcode
+        r"(?:0x|\\x)12\b",  # INQUIRY
+        r"WRITE_BUFFER",
+        r"WRITE_DATA_BUFF",
+        r"SEND_DIAGNOSTIC",
     ],
     "firmware_io": [
-        r"\.bin\b",  # Firmware binary file
-        r"gdfw\b",  # GD firmware reference
-        r"\.cfg\b",  # Config file
-        r"fileSize|file_size|filelen|file_len",  # File size tracking
-        r"firmware\b",  # Firmware references
-        r"ReadFile\s*\(",  # File read
-        r"WriteFile\s*\(",  # File write (to device)
-        r"fopen\b|fread\b|fwrite\b",  # C file I/O
+        r"\.bin\b",
+        r"gdfw\b",
+        r"\.cfg\b",
+        r"fileSize|file_size|filelen|file_len",
+        r"firmware\b",
+        r"ReadFile\s*\(",
+        r"WriteFile\s*\(",
+        r"fopen\b|fread\b|fwrite\b",
     ],
     "device_detection": [
-        r"VID_0BDA|vid.*0bda|0x0bda",  # Realtek vendor ID
-        r"PID_9210|pid.*9210|0x9210",  # RTL9210 product ID
-        r"RTL9210\b",  # Chip name
-        r"Sabrent\b",  # Enclosure brand
-        r"SetupDi\w+",  # Setup API enumeration
-        r"CM_Get_Device_ID",  # Device manager API
-        r"USB\\.*VID",  # USB hardware ID
+        r"VID_0BDA|vid.*0bda|0x0bda",
+        r"PID_9210|pid.*9210|0x9210\b",
+        r"RTL9210\b",
+        r"Sabrent\b",
+        r"SetupDi\w+",
+        r"CM_Get_Device_ID",
+        r"USB\\.*VID",
     ],
     "usb_transport": [
-        r"Bulk\s*(?:In|Out|IN|OUT)",  # USB bulk endpoint
-        r"ControlTransfer",  # USB control transfer
-        r"WinUSB\b",  # WinUSB API
-        r"libusb\b",  # libusb (unlikely in PE but check)
-        r"Interface\s*=\s*0",  # USB interface selection
-        r"Endpoint\b",  # USB endpoint
+        r"Bulk\s*(?:In|Out|IN|OUT)",
+        r"ControlTransfer",
+        r"WinUSB\b",
+        r"libusb\b",
+        r"Interface\s*=\s*0",
+        r"Endpoint\b",
     ],
+}
+
+PATTERNS = {
+    cat: [re.compile(p, re.IGNORECASE) for p in regexes]
+    for cat, regexes in _RAW_PATTERNS.items()
 }
 
 
@@ -73,7 +77,7 @@ def scan_file(filepath):
     for line_num, line in enumerate(lines, start=1):
         for category, regexes in PATTERNS.items():
             for regex in regexes:
-                if re.search(regex, line, re.IGNORECASE):
+                if regex.search(line):
                     matches.append(
                         {
                             "file": os.path.basename(filepath),
@@ -83,6 +87,7 @@ def scan_file(filepath):
                             "content": line.strip(),
                         }
                     )
+                    break
     return matches
 
 
@@ -97,18 +102,13 @@ def scan_corpus(input_dir, output_file):
     print(f"Scanning {len(c_files)} .c files for {len(PATTERNS)} pattern categories...")
 
     all_matches = []
-    for i, fpath in enumerate(sorted(c_files)):
+    for i, fpath in enumerate(c_files):
         matches = scan_file(fpath)
         all_matches.extend(matches)
         if (i + 1) % 500 == 0:
             print(
                 f"  scanned {i + 1}/{len(c_files)} files, {len(all_matches)} matches so far"
             )
-
-    # Write as grep-style output
-    with open(output_file, "w") as out:
-        for m in all_matches:
-            out.write(f"{m['file']}:{m['line']}: [{m['category']}] {m['content']}\n")
 
     # Summary
     by_category = {}
@@ -121,7 +121,9 @@ def scan_corpus(input_dir, output_file):
 
     top_files = sorted(by_file.items(), key=lambda x: x[1], reverse=True)[:20]
 
-    with open(output_file, "a") as out:
+    with open(output_file, "w") as out:
+        for m in all_matches:
+            out.write(f"{m['file']}:{m['line']}: [{m['category']}] {m['content']}\n")
         out.write(f"\n=== Summary ===\n")
         out.write(f"Total matches: {len(all_matches)}\n\n")
         out.write("By category:\n")

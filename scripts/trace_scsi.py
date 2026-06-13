@@ -131,6 +131,8 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
             cdb_count = 0
             kw_count = 0
             decomp_count = 0
+            skipped_thunks = 0
+            skipped_errors = 0
             for i, func in enumerate(functions):
                 if max_funcs and i >= max_funcs:
                     print(f"  stopping after {max_funcs} functions (--max-funcs)")
@@ -151,8 +153,13 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
                         decomp = result.decompiledFunction.getC()
                     else:
                         decomp = None
+                        if result is None or result.decompiledFunction is None:
+                            skipped_thunks += 1
+                        else:
+                            skipped_errors += 1
                 except Exception:
                     decomp = None
+                    skipped_errors += 1
 
                 if not decomp:
                     continue
@@ -172,7 +179,7 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
                 if not kw_match and not has_cdb:
                     continue
 
-                if scsi_keywords.search(decomp):
+                if kw_match:
                     results["scsi_functions"].append(
                         {
                             "name": name,
@@ -204,6 +211,9 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
             print(f"  SCSI-related functions: {len(results['scsi_functions'])}")
             print(
                 f"  keyword matches: {kw_count}, cdb matches: {cdb_count}, total decompiled: {decomp_count}"
+            )
+            print(
+                f"  skipped thunks: {skipped_thunks}, skipped errors: {skipped_errors}"
             )
             print(f"  Device paths: {len(results['device_paths'])}")
             print(f"  CDB extractions: {len(results['cdb_extractions'])}")
@@ -264,8 +274,8 @@ def _has_cdb_pattern(decomp):
     cdb_indicators = [
         r"\.Cdb\s*\[",  # Array indexing: sptd.Cdb[i]
         r"cdb\s*\[",  # Direct array: cdb[i]
-        r"(?:0x|\\x)3[bB]\b",  # WRITE_BUFFER opcode
-        r"(?:0x|\\x)3[cC]\b",  # READ_BUFFER opcode
+        r"(?:0x|\\x)3b\b",  # WRITE_BUFFER opcode
+        r"(?:0x|\\x)3c\b",  # READ_BUFFER opcode
         r"WRITE_BUFFER",  # Named constant
         r"WRITE_DATA_BUFF",  # Alternative
         r"SCSI_PASS_THROUGH",  # SPT structure
@@ -300,25 +310,25 @@ def _extract_cdb_info(decomp, func_name, func_addr):
         )
 
     # Detect opcode from byte pattern
-    for match in re.finditer(r"(?:0[xX])?3[bB]\b", decomp):
+    for match in re.finditer(r"(?:0[xX])?3b\b", decomp):
         info["suspected_opcode"] = "0x3B (WRITE BUFFER)"
 
-    for match in re.finditer(r"(?:0[xX])?3[cC]\b", decomp):
+    for match in re.finditer(r"(?:0[xX])?3c\b", decomp):
         if not info["suspected_opcode"]:
             info["suspected_opcode"] = "0x3C (READ BUFFER)"
 
     # Detect mode byte
     mode_patterns = [
         (
-            r"BUFFER_FFU_MODE|0x0[Ee]\b|mode.*=\s*0xe|0x0E\b",
+            r"BUFFER_FFU_MODE|0x0e\b|mode.*=\s*0xe|0x0E\b",
             "0x0E (download microcode with offsets, save)",
         ),
         (
-            r"0x0[Ff]\b|mode.*=\s*0xf",
+            r"0x0f\b|mode.*=\s*0xf",
             "0x0F (download microcode with offsets, deferred)",
         ),
         (r"0x0[45]\b|mode.*=\s*0x[45]", "0x04/0x05 (download microcode, no offsets)"),
-        (r"0x1[cCdD]\b", "0x1C/0x1D (echo buffer / enable expander)"),
+        (r"0x1[cd]\b", "0x1C/0x1D (echo buffer / enable expander)"),
     ]
     for pattern, desc in mode_patterns:
         if re.search(pattern, decomp, re.IGNORECASE):

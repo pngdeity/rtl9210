@@ -21,9 +21,9 @@ def run(cmd, check=True, log_file=None, **kwargs):
             result = subprocess.run(cmd, stdout=lf, stderr=subprocess.STDOUT, **kwargs)
     else:
         result = subprocess.run(cmd, capture_output=True, text=True, **kwargs)
-        if result.stdout:
-            for line in result.stdout.strip().splitlines():
-                print(f"    {line}")
+        output = (result.stdout or "") + (result.stderr or "")
+        for line in output.strip().splitlines():
+            print(f"    {line}")
 
     elapsed = time.monotonic() - start
     status = "OK" if result.returncode == 0 else f"FAILED (exit {result.returncode})"
@@ -36,10 +36,19 @@ def run(cmd, check=True, log_file=None, **kwargs):
     return result
 
 
+def _parse_total_matches(path):
+    """Extract the match count from a pattern_matches.txt summary line."""
+    with open(path) as f:
+        for line in f:
+            if line.startswith("Total matches:"):
+                return int(line.split(":")[1].strip())
+    return 0
+
+
 def ensure_decomp_corpus(output_dir, workspace):
     corpus_dir = output_dir / "decomp_all"
     if corpus_dir.exists() and any(corpus_dir.iterdir()):
-        count = len(list(corpus_dir.glob("*.c")))
+        count = sum(1 for _ in corpus_dir.glob("*.c"))
         print(f"\n=== Step 1: SKIPPED (corpus exists: {count} functions) ===")
         return count
 
@@ -49,7 +58,7 @@ def ensure_decomp_corpus(output_dir, workspace):
         output_dir.mkdir(parents=True, exist_ok=True)
         with tarfile.open(tarball, "r:gz") as tf:
             tf.extractall(output_dir)
-        count = len(list(corpus_dir.glob("*.c")))
+        count = sum(1 for _ in corpus_dir.glob("*.c"))
         print(f"  Extracted {count} functions")
         return count
 
@@ -99,8 +108,10 @@ def step_ghidrecomp(binary_path, output_dir):
 def step_scan_patterns(output_dir, scripts_dir):
     output_file = output_dir / "pattern_matches.txt"
     if output_file.exists():
-        count = sum(1 for _ in open(output_file))
-        print(f"\n=== Step 2: SKIPPED (pattern_matches.txt exists: {count} lines) ===")
+        count = _parse_total_matches(output_file)
+        print(
+            f"\n=== Step 2: SKIPPED (pattern_matches.txt exists: {count} matches) ==="
+        )
         return count
 
     print("\n=== Step 2: scan_patterns — grep .c corpus for USB/SCSI/IO patterns ===")
@@ -117,8 +128,8 @@ def step_scan_patterns(output_dir, scripts_dir):
 
     match_count = 0
     if output_file.exists():
-        match_count = sum(1 for _ in open(output_file))
-    print(f"  Pattern matches: {match_count} lines")
+        match_count = _parse_total_matches(output_file)
+    print(f"  Pattern matches: {match_count}")
     return match_count
 
 

@@ -8,28 +8,31 @@ import shutil
 import sys
 
 RELEVANT_PATTERNS = [
-    r"CreateFile[AW]?\s*\(",
-    r"DeviceIoControl\s*\(",
-    r"SCSI_PASS_THROUGH",
-    r"IOCTL_SCSI",
-    r"WRITE_BUFFER",
-    r"(?:0x|\\x)3[bB]\b",
-    r"PhysicalDrive",
-    r"\\\\\.\\USB#",
-    r"SetupDi\w+",
-    r"gdfw\b",
-    r"\.bin\b",
-    r"\.cfg\b",
-    r"VID_0BDA|vid.*0bda|0x0bda",
-    r"PID_9210|pid.*9210|0x9210",
-    r"RTL9210\b",
-    r"WinUSB\b",
-    r"Bulk\s*(?:In|Out|IN|OUT)",
-    r"ControlTransfer",
-    r"Sabrent\b",
-    r"firmware\b",
-    r"ReadFile\s*\(",
-    r"WriteFile\s*\(",
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"CreateFile[AW]?\s*\(",
+        r"DeviceIoControl\s*\(",
+        r"SCSI_PASS_THROUGH",
+        r"IOCTL_SCSI",
+        r"WRITE_BUFFER",
+        r"(?:0x|\\x)3b\b",
+        r"PhysicalDrive",
+        r"\\\\\.\\USB#",
+        r"SetupDi\w+",
+        r"gdfw\b",
+        r"\.bin\b",
+        r"\.cfg\b",
+        r"VID_0BDA|vid.*0bda|0x0bda",
+        r"PID_9210|pid.*9210|0x9210",
+        r"RTL9210\b",
+        r"WinUSB\b",
+        r"Bulk\s*(?:In|Out|IN|OUT)",
+        r"ControlTransfer",
+        r"Sabrent\b",
+        r"firmware\b",
+        r"ReadFile\s*\(",
+        r"WriteFile\s*\(",
+    ]
 ]
 
 
@@ -41,7 +44,7 @@ def is_relevant(filepath):
         return False
 
     for pattern in RELEVANT_PATTERNS:
-        if re.search(pattern, content, re.IGNORECASE):
+        if pattern.search(content):
             return True
     return False
 
@@ -60,10 +63,11 @@ def filter_corpus(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     copied = 0
 
-    for i, fpath in enumerate(sorted(c_files)):
+    for i, fpath in enumerate(c_files):
         if is_relevant(fpath):
-            fname = os.path.basename(fpath)
-            dest = os.path.join(output_dir, fname)
+            rel = os.path.relpath(fpath, input_dir)
+            dest = os.path.join(output_dir, rel)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
             shutil.copy2(fpath, dest)
             copied += 1
 

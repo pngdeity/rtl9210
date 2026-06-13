@@ -3,6 +3,7 @@
 
 import hashlib
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -18,7 +19,6 @@ GHIDRA_SHA256 = "aa5cbcbbf48f41ca185fce900e19592f1ade4cd5994eb6e0ede468dac8a6f30
 
 GHIDRA_INSTALL_DIR = "/opt/ghidra"
 FIRMWARE_ZIP = "firmware/realtek_rtl9210B_fw1.34.39(station-drivers.com).zip"
-JAVA_VERSION = "21"
 POLL_INTERVAL = 5
 MAX_WAIT = 300
 
@@ -35,6 +35,7 @@ def download_ghidra():
         print(f"  Already downloaded: {dest}")
     else:
         print(f"  Downloading from {GHIDRA_URL} ...")
+        socket.setdefaulttimeout(60)
         urlretrieve(GHIDRA_URL, dest)
     size_mb = dest.stat().st_size / (1024 * 1024)
     print(f"  Downloaded: {size_mb:.0f} MB")
@@ -60,7 +61,11 @@ def extract_ghidra(zip_path):
     print(f"  Extracted: {src}")
 
     symlink = Path(GHIDRA_INSTALL_DIR)
-    if symlink.is_symlink() or symlink.exists():
+    if symlink.is_symlink():
+        symlink.unlink()
+    elif symlink.is_dir():
+        symlink.rmdir()
+    elif symlink.exists():
         symlink.unlink()
     symlink.symlink_to(src)
     print(f"  Symlinked: {GHIDRA_INSTALL_DIR} -> {src}")
@@ -71,7 +76,6 @@ def switch_to_jdk_21():
     print(f"\n=== Switching to Java 21 ===")
     sdkman_dir = Path("/usr/local/sdkman")
     sdkman_init = sdkman_dir / "bin" / "sdkman-init.sh"
-    sdk_bin = sdkman_dir / "bin" / "sdkman-init.sh"
     candidates = sdkman_dir / "candidates" / "java"
 
     elapsed = 0
@@ -93,20 +97,16 @@ def switch_to_jdk_21():
     )
 
     if not jdk21:
-        jdk21s = [d.name for d in java_candidates if "21" in d.name]
-        if jdk21s:
-            sys.exit(f"JDK 21 not found under {candidates}. Available: {jdk21s}")
+        available = [d.name for d in java_candidates]
+        sys.exit(
+            f"JDK 21 not found under {candidates}. Available: {available or 'none'}"
+        )
 
-    if jdk21:
-        java_home = jdk21
-    else:
-        java_home = candidates / "current"
-
-    os.environ["JAVA_HOME"] = str(java_home)
-    os.environ["PATH"] = f"{java_home / 'bin'}:{os.environ.get('PATH', '')}"
+    os.environ["JAVA_HOME"] = str(jdk21)
+    os.environ["PATH"] = f"{jdk21 / 'bin'}:{os.environ.get('PATH', '')}"
 
     result = subprocess.run(
-        [str(java_home / "bin" / "java"), "-version"],
+        [str(jdk21 / "bin" / "java"), "-version"],
         capture_output=True,
         text=True,
         timeout=10,
@@ -116,11 +116,8 @@ def switch_to_jdk_21():
         if (result.stderr or result.stdout)
         else "unknown"
     )
-    print(f"  Java home: {java_home}")
+    print(f"  Java home: {jdk21}")
     print(f"  {ver_line}")
-
-    if "21" not in ver_line and not jdk21:
-        print("  WARNING: failed to confirm JDK 21")
 
 
 def install_pyghidra():
