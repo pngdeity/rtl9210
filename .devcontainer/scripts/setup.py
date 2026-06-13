@@ -12,9 +12,9 @@ from urllib.request import urlretrieve
 
 GHIDRA_VERSION = "12.1"
 GHIDRA_TAG = "Ghidra_12.1_build"
-GHIDRA_FILENAME = "ghidra_12.1_PUBLIC_20250916.zip"
+GHIDRA_FILENAME = "ghidra_12.1_PUBLIC_20260513.zip"
 GHIDRA_URL = f"https://github.com/NationalSecurityAgency/ghidra/releases/download/{GHIDRA_TAG}/{GHIDRA_FILENAME}"
-GHIDRA_SHA256 = "dabe2e5d1e56ba0848976711d75b3f53d696939697cfbd0f293cd8aee77a8424"
+GHIDRA_SHA256 = "aa5cbcbbf48f41ca185fce900e19592f1ade4cd5994eb6e0ede468dac8a6f302"
 
 GHIDRA_INSTALL_DIR = "/opt/ghidra"
 FIRMWARE_ZIP = "firmware/realtek_rtl9210B_fw1.34.39(station-drivers.com).zip"
