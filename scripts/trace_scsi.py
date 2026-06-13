@@ -37,12 +37,6 @@ def _launch_ghidra(install_dir):
     from pyghidra import HeadlessPyGhidraLauncher
 
     launcher = HeadlessPyGhidraLauncher(verbose=False)
-
-    framework_dir = ghidra_install / "Ghidra" / "Framework"
-    if framework_dir.exists():
-        for jar in sorted(framework_dir.rglob("*.jar")):
-            launcher.add_classpaths(str(jar))
-
     launcher.start()
     import pyghidra
 
