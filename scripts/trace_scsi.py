@@ -124,6 +124,7 @@ def extract_scsi_info(binary_path, project_dir, output_path):
             cdb_count = 0
             kw_count = 0
             decomp_count = 0
+            error_count = 0
             for i, func in enumerate(functions):
                 if (i + 1) % 5000 == 0:
                     print(f"  processed {i + 1}/{len(functions)} ...")
@@ -136,6 +137,14 @@ def extract_scsi_info(binary_path, project_dir, output_path):
                     if result is not None and not result.getErrorMessage():
                         decomp = result.decompiledFunction.getC()
                     else:
+                        error_count += 1
+                        if error_count <= 3:
+                            err = (
+                                result.getErrorMessage() if result else "result is None"
+                            )
+                            print(
+                                f"  ERR [{error_count}]: {name} @ {addr} — {err[:120]}"
+                            )
                         decomp = None
                 except Exception:
                     decomp = None
