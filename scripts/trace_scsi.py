@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Trace SCSI and USB firmware-update logic in UTHSB_MPtool_Lite.exe using pyghidra.
 
-Requires: pyghidra, jpype (installed by setup.sh)
+Requires: pyghidra, jpype (installed by setup.py)
 Outputs: scsi_cdb_sequence.json — structured SCSI command sequence
 """
 
@@ -84,10 +84,11 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
         ) as flat_api:
             program = flat_api.getCurrentProgram()
             print("Running analysis ...")
-            import pyghidra as _pyg
+            from ghidra.program.util import GhidraProgramUtilities
 
-            analysis_log = _pyg.analyze(program)
-            print(f"  analysis complete: {len(analysis_log)} chars")
+            if GhidraProgramUtilities.shouldAskToAnalyze(program):
+                flat_api.analyzeAll(program)
+            print("  analysis complete")
 
         # Phase 2: reopen analyzed program, set up decompiler, extract
         with ghidra.open_program(
