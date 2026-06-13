@@ -78,7 +78,7 @@ def extract_scsi_info(binary_path, project_dir, output_path, max_funcs=None):
         with ghidra.open_program(
             binary_path,
             project_location=project_path,
-            analyze=True,
+            analyze=False,
         ) as flat_api:
             program = flat_api.getCurrentProgram()
             fm = program.getFunctionManager()
